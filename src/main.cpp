@@ -17,11 +17,14 @@ const char *mqtt_server = "192.168.1.50";
 
 const char *name = "mqtt_doorbell";
 
-const char *bellPressedTopic = "/status/doorbell/pressed";
-const char *bellControlTopic = "/cmnd/doorbell/shouldring";
+const char *buttonPressedTopic = "status/doorbell/pressed";
+const char *bellRangTopic = "status/doorbell/rang";
+
+const char *bellMuteTopic = "cmnd/doorbell/mute";
+const char *bellRingTopic = "cmnd/doorbell/ring";
 
 //Default to non-muted doorbell status.
-boolean shouldRing = true;
+bool muted = false;
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -58,7 +61,9 @@ void reconnect() {
     // Attempt to connect
     if (client.connect(name)) {
       Serial.println("connected");
-      client.subscribe(bellControlTopic);
+      client.subscribe(bellMuteTopic);
+      client.subscribe(bellRingTopic);
+
     } else {
       Serial.print("failed, rc=");
       Serial.print(client.state());
@@ -69,18 +74,35 @@ void reconnect() {
   }
 }
 
+void ringBell() {
+  //Ring the bell!
+  Serial.println("Ringing the bell!");
+  //Ding
+  digitalWrite(RELAY_PIN, HIGH);
+  delay(400);
+  //Dong
+  digitalWrite(RELAY_PIN, LOW);
+  client.publish(bellRangTopic, "1");
+}
+
 void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print("Message arrived [");
   Serial.print(topic);
   Serial.print("] ");
 
-  if ((char)payload[0] == '1') {
-    shouldRing = true;
+  if (!strcmp(topic, bellMuteTopic)) {
+    if ((char)payload[0] == '1') {
+      muted = true;
+    }
+    else if ((char)payload[0] == '0') {
+      muted = false;
+    }
   }
-  else if ((char)payload[0] == '0') {
-    shouldRing = false;
+  else if (!strcmp(topic, bellRingTopic)) {
+    ringBell();
   }
 }
+
 
 void setup() {
   pinMode(RELAY_PIN, OUTPUT);
@@ -106,18 +128,12 @@ void loop() {
   if (digitalRead(BUTTON_PIN) == LOW) {
     Serial.println("Doorbell pressed");
     //Ooh, someone has rung the doorbell!
-    if (shouldRing) {
-      Serial.println("Ringing the bell!");
-      //Ding
-      digitalWrite(RELAY_PIN, HIGH);
-      delay(500);
-      //Dong
-      digitalWrite(RELAY_PIN, LOW);
-    }
-    else {
+    if (!muted)
+      ringBell();
+    else
       Serial.println("Muted - not ringing");
-    }
-    client.publish(bellPressedTopic, "1");
+
+    client.publish(buttonPressedTopic, "1");
     delay(1000);
   }
 
