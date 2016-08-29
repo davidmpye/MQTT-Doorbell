@@ -6,10 +6,12 @@
 
 #include <ESP8266WiFi.h>
 #include <PubSubClient.h>
+#include <Adafruit_NeoPixel.h>
 
 //Pin definition for other peripherals
 #define RELAY_PIN 5
 #define BUTTON_PIN 4 //I2C_SDA_PIN
+#define LED_PIN 15
 
 const char *ssid="";
 const char *password = "";
@@ -28,6 +30,7 @@ bool muted = false;
 
 WiFiClient espClient;
 PubSubClient client(espClient);
+Adafruit_NeoPixel led = Adafruit_NeoPixel(1, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 
 void setup_wifi() {
@@ -93,9 +96,15 @@ void callback(char* topic, byte* payload, unsigned int length) {
   if (!strcmp(topic, bellMuteTopic)) {
     if ((char)payload[0] == '1') {
       muted = true;
+      //Red
+      led.setPixelColor(0,255,0,0);
+      led.show();
     }
     else if ((char)payload[0] == '0') {
       muted = false;
+      //Green
+      led.setPixelColor(0,0,255,0);
+      led.show();
     }
   }
   else if (!strcmp(topic, bellRingTopic)) {
@@ -105,6 +114,11 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
 
 void setup() {
+  led.begin();
+  led.setBrightness(10);
+  led.setPixelColor(0,255,255,0);
+  led.show();
+
   pinMode(RELAY_PIN, OUTPUT);
   digitalWrite(RELAY_PIN, LOW);
 
@@ -115,6 +129,10 @@ void setup() {
 
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
+
+
+  led.setPixelColor(0,0,255,0);
+  led.show();
 }
 
 
