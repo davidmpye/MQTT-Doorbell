@@ -34,31 +34,29 @@ Adafruit_NeoPixel led = Adafruit_NeoPixel(1, LED_PIN, NEO_GRB + NEO_KHZ800);
 
 
 void setup_wifi() {
-
-  delay(10);
-  // We start by connecting to a WiFi network
   Serial.println();
   Serial.print("Connecting to ");
   Serial.println(ssid);
 
   WiFi.begin(ssid, password);
-
-  while (WiFi.status() != WL_CONNECTED) {
+  for (int retry_count = 0; retry_count <20 && WiFi.status() != WL_CONNECTED; ++retry_count) {
     delay(500);
     Serial.print(".");
   }
 
-  randomSeed(micros());
+  if (WiFi.status () == WL_CONNECTED) {
+    Serial.println("");
+    Serial.println("WiFi connected");
+    Serial.println("IP address: ");
+    Serial.println(WiFi.localIP());
+  }
+  else Serial.println("Failed to connect to wifi - abandoned");
 
-  Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
 }
 
 void reconnect() {
   // Loop until we're reconnected
-  while (!client.connected()) {
+  for (int retry_count = 0; retry_count < 20 && !client.connected(); ++retry_count) {
     Serial.print("Attempting MQTT connection...");
 
     // Attempt to connect
@@ -137,7 +135,6 @@ void setup() {
 
 
 void loop() {
-
   if (!client.connected()) {
     reconnect();
   }
