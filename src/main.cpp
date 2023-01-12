@@ -38,6 +38,7 @@ void setup_wifi() {
   Serial.print("Connecting to ");
   Serial.println(ssid);
 
+  WiFi.hostname(name);
   WiFi.begin(ssid, password);
   for (int retry_count = 0; retry_count <20 && WiFi.status() != WL_CONNECTED; ++retry_count) {
     delay(500);
@@ -56,6 +57,9 @@ void setup_wifi() {
 
 void reconnect() {
   // Loop until we're reconnected
+  if (WiFi.status() != WL_CONNECTED)
+    return;
+
   for (int retry_count = 0; retry_count < 20 && !client.connected(); ++retry_count) {
     Serial.print("Attempting MQTT connection...");
 
@@ -110,7 +114,6 @@ void callback(char* topic, byte* payload, unsigned int length) {
   }
 }
 
-
 void setup() {
   led.begin();
   led.setBrightness(10);
@@ -128,7 +131,6 @@ void setup() {
   client.setServer(mqtt_server, 1883);
   client.setCallback(callback);
 
-
   led.setPixelColor(0,0,255,0);
   led.show();
 }
@@ -138,7 +140,6 @@ void loop() {
   if (!client.connected()) {
     reconnect();
   }
-  client.loop();
 
   if (digitalRead(BUTTON_PIN) == LOW) {
     Serial.println("Doorbell pressed");
@@ -151,6 +152,5 @@ void loop() {
     client.publish(buttonPressedTopic, "1");
     delay(1000);
   }
-
   delay(50);
 }
